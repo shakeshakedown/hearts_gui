@@ -8,7 +8,7 @@ class Player:
     def __init__(self, player_id, player_name, player_points):
         self.player_id = player_id
         self.player_name = player_name
-        self.player_points = player_points
+        self.player_points = int(player_points)
 
 # Launch screen for hearts scoring
 class Intro(tk.Tk):
@@ -56,12 +56,13 @@ class Intro(tk.Tk):
 
     # Creates button to start game, links to _start_game
     def _btn_start_game(self):
-        button_frame = tk.Frame(master=self)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        start_button = tk.Button(master=button_frame, text="Start Game", command=self._start_game)
+        btn_frame = tk.Frame(master=self)
+        btn_frame.pack(side=tk.BOTTOM, fill=tk.X)
+        start_button = tk.Button(master=btn_frame, text="Start Game", command=self._start_game)
         start_button.pack()
 
     # Gets entries for player names, initializes Player objects, adds them to players list
+    # FIXME: Check to make sure no entry is empty
     def _start_game(self):
         player_names = [entry.get() for entry in self.entries]
         players = []
@@ -86,16 +87,49 @@ class Scoreboard(tk.Frame):
         super().__init__(master)
         self.pack(fill=tk.BOTH, expand=True)
         self.players = players
+        self.points_labels = []
         self.scoreboard_names_pts()
+        self.score_entry()
+        self.btn_score_entry()
 
+    # Retrieve names and current points from players
     def scoreboard_names_pts(self):
         for id, player in enumerate(self.players):
             frame = tk.Frame(self)
-            frame.grid(row=0, column=id, padx=5, pady=5)
+            frame.grid(row=0, column=(id + 1), padx=5, pady=5)
             name = tk.Label(frame, text=f"{player.player_name}", font=font.Font(size=18))
             name.pack(padx=10, pady=10)
-            points = tk.Label(frame, text=f"{player.player_points}", font=font.Font(size=20, weight="bold"))
+            points = tk.Label(frame, text=f"{player.player_points}", font=font.Font(size=15, weight="bold"))
             points.pack(padx=10, pady=10)
+            self.points_labels.append(points)
+    
+    # Create 3 or 4 entries for scoring points
+    def score_entry(self):
+        self.pts_to_add = []
+        for id, player in enumerate(self.players):
+            frame = tk.Frame(self)
+            frame.grid(row=1, column=(id + 1), padx=5, pady=5, sticky="ew")
+            pts = tk.Entry(frame, width=10)
+            pts.pack()
+            self.pts_to_add.append(pts)
+
+    # Button for adding points
+    def btn_score_entry(self):
+        btn_frame = tk.Frame(master=self)
+        btn_frame.grid(row=2, column=0, columnspan=4, sticky="ew")
+        self.grid_columnconfigure(0, weight=1)
+        btn_add_pts = tk.Button(master=btn_frame, text="Add Points", command=self.add_pts)
+        btn_add_pts.pack()
+
+    # Logic for adding points to player's scores
+    def add_pts(self):
+        try:
+            adjust_pts = [int(points.get()) for points in self.pts_to_add]
+            for id, player in enumerate(self.players):
+                player.player_points += adjust_pts[id]
+                self.points_labels[id].config(text=str(self.players[id].player_points))
+        except ValueError:
+            print(f"Invalid input for a player. Enter a number!")
 
 def main():
     board = Intro()
