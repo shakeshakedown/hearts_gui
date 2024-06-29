@@ -51,6 +51,9 @@ class Intro(tk.Tk):
         self.entries = []
         for num in range(self.var.get()):
             entry = tk.Entry(master=self, width=50)
+
+            # debug, so player names don't have to be filled in each time
+            entry.insert(0, f"Player {num + 1}")
             entry.pack()
             self.entries.append(entry)
 
@@ -85,41 +88,51 @@ class Intro(tk.Tk):
 class Scoreboard(tk.Frame):
     def __init__(self, master, players):
         super().__init__(master)
-        self.pack(fill=tk.BOTH, expand=True)
+        self.pack()
         self.players = players
         self.points_labels = []
+        self.num_hands = 0
+        self.prev_hands = {}
+        self.common_frame = tk.Frame(self)
+        self.common_frame.grid()
+        self.entry_btn_frame = tk.Frame(self)
+        self.entry_btn_frame.grid()
         self.scoreboard_names_pts()
         self.score_entry()
         self.btn_score_entry()
 
     # Retrieve names and current points from players
     def scoreboard_names_pts(self):
+        frame = self.common_frame
+        tk.Label(frame, text="Player Name", font=font.Font(weight="bold")).grid(row=0, column=0, padx=10, pady=10)
+        tk.Label(frame, text="Total Points", font=font.Font(weight="bold")).grid(row=1, column=0, padx=10, pady=10)
         for id, player in enumerate(self.players):
-            frame = tk.Frame(self)
-            frame.grid(row=0, column=(id + 1), padx=5, pady=5)
-            name = tk.Label(frame, text=f"{player.player_name}", font=font.Font(size=18))
-            name.pack(padx=10, pady=10)
-            points = tk.Label(frame, text=f"{player.player_points}", font=font.Font(size=15, weight="bold"))
-            points.pack(padx=10, pady=10)
+            name = tk.Label(frame, text=f"{player.player_name}")
+            name.grid(row=0, column=(id + 1), padx=10, pady=10)
+            points = tk.Label(frame, text=f"{player.player_points}")
+            points.grid(row=1, column=(id + 1), padx=10, pady=10)
             self.points_labels.append(points)
     
+    # Retrieve the previous hands played and their point values
+    def hands_list_update(self):
+        frame = self.common_frame
+        for hand in range(self.num_hands):
+            tk.Label(frame, text=f"Hand {hand + 1}", font=font.Font(weight="bold")).grid(row=hand + 2, column=0, padx=10, pady=10)
+            for score in range(len(self.players)):
+                tk.Label(frame, text=f"{self.prev_hands[hand + 1][score]}").grid(row=(hand + 2), column=(score + 1))
+
     # Create 3 or 4 entries for scoring points
     def score_entry(self):
         self.pts_to_add = []
         for id, player in enumerate(self.players):
-            frame = tk.Frame(self)
-            frame.grid(row=1, column=(id + 1), padx=5, pady=5, sticky="ew")
-            pts = tk.Entry(frame, width=10)
-            pts.pack()
+            pts = tk.Entry(self.entry_btn_frame, justify="center")
+            pts.grid(row=(self.num_hands + 3), column=id)
             self.pts_to_add.append(pts)
 
     # Button for adding points
     def btn_score_entry(self):
-        btn_frame = tk.Frame(master=self)
-        btn_frame.grid(row=2, column=0, columnspan=4, sticky="ew")
-        self.grid_columnconfigure(0, weight=1)
-        btn_add_pts = tk.Button(master=btn_frame, text="Add Points", command=self.add_pts)
-        btn_add_pts.pack()
+        btn_add_pts = tk.Button(self.entry_btn_frame, text="Add Points", command=lambda: [self.add_pts(), self.hands_list_update()])
+        btn_add_pts.grid(row=4)
 
     # Logic for adding points to player's scores
     def add_pts(self):
@@ -128,8 +141,11 @@ class Scoreboard(tk.Frame):
             for id, player in enumerate(self.players):
                 player.player_points += adjust_pts[id]
                 self.points_labels[id].config(text=str(self.players[id].player_points))
+            self.num_hands += 1
+            self.prev_hands[self.num_hands] = adjust_pts
+            print(self.prev_hands)
         except ValueError:
-            print(f"Invalid input for a player. Enter a number!")
+            print(f"Invalid input for a player. Enter a number.")
 
 def main():
     board = Intro()
