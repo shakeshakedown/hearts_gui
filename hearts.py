@@ -15,108 +15,118 @@ class Player:
 class Intro(tk.Tk):
     def __init__(self):
         super().__init__()
+
+        # Attributes
         self.title("Hearts Scoreboard")
         self.var = tk.IntVar()
         self.var.set(3)
-        self.var.trace("w", self.update_player_names)
+        self.var.trace_add("write", self.update_player_names)
+        self.entries = []
+        self.score_max = 100
+
+        # Frames
+        self.intro_frame = tk.Frame(self)
+        self.intro_frame.grid()
+        self.button_frame = tk.Frame(self)
+        self.button_frame.grid()
+
+        # Methods
         self.header()
+        self.score_cap()
         self.num_players()
-        self.create_entry_frame()
         self.update_player_names()
         self.btn_start_game()
 
-    # Main header
+    # Header
     def header(self):
-        display_frame = tk.Frame(master=self)
-        display_frame.pack(fill=tk.X)
-        self.display = tk.Label(master=display_frame, text="Hearts Scoreboard", font=font.Font(size=28, weight="bold"))
-        self.display.pack()
+        frame = self.intro_frame
+        self.display = tk.Label(frame, text="Hearts Scoreboard", font=font.Font(size=28, weight="bold"))
+        self.display.grid(row=0)
+
+    def score_cap(self):
+        frame = self.intro_frame
+        tk.Label(frame, text="What score are you playing to?").grid(row=1)
+        self.score_entry = tk.Entry(frame, width=25, justify="center")
+        self.score_entry.grid(row=2)
+        self.score_entry.insert(0, f"{self.score_max}")
 
     # Radio buttons for choosing 3 or 4 players
     def num_players(self):
-        tk.Frame(master=self).pack(fill=tk.X)
-        tk.Label(master=self, text="How many players?").pack()
-        Radiobutton(self, text="3 Players", variable=self.var, value=3).pack(anchor=W)
-        Radiobutton(self, text="4 Players", variable=self.var, value=4).pack(anchor=W)
-
-    # Creates the entries for player names
-    def create_entry_frame(self):
-        tk.Frame(master=self).pack(fill=tk.X)
-        self.entries = []
+        frame = self.intro_frame
+        tk.Label(frame, text="How many players?").grid(row=3)
+        Radiobutton(frame, text="3 Players", variable=self.var, value=3).grid(row=4)
+        Radiobutton(frame, text="4 Players", variable=self.var, value=4).grid(row=5)
 
     # If number of players changes, destroys all entries and adds new entries equal to the number of players selected
     # FIXME: Already input player names should stay when changing        
     def update_player_names(self, *args):
+        frame = self.intro_frame
         for entry in self.entries:
             entry.destroy()
         self.entries = []
         for num in range(self.var.get()):
-            entry = tk.Entry(master=self, width=50)
+            entry = tk.Entry(frame, width=50)
 
             # debug, so player names don't have to be filled in each time
             entry.insert(0, f"Player {num + 1}")
-            entry.pack()
+            entry.grid()
             self.entries.append(entry)
 
-    # Creates button to start game, links to _start_game
+    # Creates button to start game, links to start_game
     def btn_start_game(self):
-        btn_frame = tk.Frame(master=self)
-        btn_frame.pack(side=tk.BOTTOM, fill=tk.X)
-        start_button = tk.Button(master=btn_frame, text="Start Game", command=self._start_game)
-        start_button.pack()
+        frame = self.button_frame
+        start_button = tk.Button(frame, text="Start Game", command=self.start_game)
+        start_button.grid(row=1)
 
     # Gets entries for player names, initializes Player objects, adds them to players list
     # FIXME: Check to make sure no entry is empty
-    def _start_game(self):
+    def start_game(self):
         player_names = [entry.get() for entry in self.entries]
         players = []
         for id, name in enumerate(player_names):
             player = Player(id, name, 0)
             players.append(player)
 
-        # debug
-        for player in players:
-            print(f"Player Name: {player.player_name}")
-        
-        self.switch_to_scoreboard(players)
+        self.score_max = int(self.score_entry.get())
+        self.switch_to_scoreboard(players, self.score_max)
 
-    # Switch over to Scoreboard class with Player objects and players list
-    def switch_to_scoreboard(self, players):
+    # Switch over to Scoreboard class
+    def switch_to_scoreboard(self, players, score_max):
         for widget in self.winfo_children():
             widget.destroy()
-        Scoreboard(self, players)
+        Scoreboard(self, players, self.score_max)
 
 class Scoreboard(tk.Frame):
-    def __init__(self, master, players):
+    def __init__(self, master, players, score_max):
         super().__init__(master)
         self.pack()
+
+        # Attributes
         self.players = players
+        self.score_max = score_max
         self.current_pass = []
-        self.passing_cycle = None
         self.points_labels = []
+        self.passing_cycle = None
         self.num_hands = 0
         self.prev_hands = {}
-        self.game_info_labels = {}
+
+        # Frames
         self.game_info_frame = tk.Frame(self)
         self.game_info_frame.grid()
         self.name_pts_frame = tk.Frame(self)
         self.name_pts_frame.grid()
         self.entry_btn_frame = tk.Frame(self)
         self.entry_btn_frame.grid()
+
+        # Methods to set up board
         self.passing()
         self.game_info()
-        self.passing()
         self.scoreboard_names_pts()
         self.score_entry()
         self.btn_score_entry()
 
     def passing(self):
-        if len(self.players) == 3:
-            self.current_pass = ["Left", "Right", "Hold"]
-        elif len(self.players) == 4:
-            self.current_pass = ['Left', "Right", "Across", "Hold"]
-        else:
-            ValueError("Somehow the amount of players is not 3 or 4.")
+        self.current_pass = ["Left", "Right", "Hold"] if len(self.players) == 3 else ["Left", "Right", "Across", "Hold"]
 
     def game_info(self):
         frame = self.game_info_frame
