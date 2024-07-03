@@ -172,6 +172,30 @@ class Scoreboard(tk.Frame):
         btn_add_pts = tk.Button(self.entry_btn_frame, text="Add Points", command=lambda: [self.add_pts(), self.hands_list_update(), self.game_info()])
         btn_add_pts.grid(row=4)
 
+    # Check if a player shot the moon (collected all possible points)
+    def shoot_the_moon(self, pts):
+        shoot_the_moon = [id for id, score in enumerate(pts) if score == 26]
+        if shoot_the_moon:
+            for id, score in enumerate(pts):
+                pts[id] = 26 if id not in shoot_the_moon else 0
+   
+    # Check for winner
+    def check_for_winner(self):
+        for player in self.players:
+            if player.player_points >= self.score_max:
+                return True
+            return False
+
+    def find_winner(self):
+        winner_id = min(range(len(self.players)), key=lambda i: self.players[i].player_points)
+        popup = tk.Toplevel(self)
+        popup.title("Winner!")
+        popup.geometry("200x150")
+        winner = self.players[winner_id].player_name
+
+        label = tk.Label(popup, text=f"{winner} won!")
+        label.pack(pady=10)
+
     # Logic for adding points to player's scores
     def add_pts(self):
         try:
@@ -182,18 +206,16 @@ class Scoreboard(tk.Frame):
                 messagebox.showerror("Points Error", "Total value of all points scored must equal 26.")
                 return
             
-            # Checks if any player shot the moon
-            shoot_the_moon = [id for id, score in enumerate(adjust_pts) if score == 26]
-            if shoot_the_moon:
-                for id, score in enumerate(adjust_pts):
-                    adjust_pts[id] = 26 if id not in shoot_the_moon else 0
+            self.shoot_the_moon(adjust_pts)
 
             for id, player in enumerate(self.players):
                 player.player_points += adjust_pts[id]
                 self.points_labels[id].config(text=str(self.players[id].player_points))
             self.num_hands += 1
             self.prev_hands[self.num_hands] = adjust_pts
-            print(self.prev_hands)
+
+            if self.check_for_winner():
+                self.find_winner()
             
         except ValueError:
             messagebox.showerror("Points Error", "Please enter a number for each player's scored points.")
